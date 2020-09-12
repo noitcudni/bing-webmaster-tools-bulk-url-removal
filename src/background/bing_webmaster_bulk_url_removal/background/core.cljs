@@ -5,9 +5,10 @@
             [cljs.core.async :refer [<! chan]]
             [chromex.logging :refer-macros [log info warn error group group-end]]
             [chromex.chrome-event-channel :refer [make-chrome-event-channel]]
-            [chromex.protocols.chrome-port :refer [post-message! get-sender]]
+            [chromex.protocols.chrome-port :refer [on-disconnect! post-message! get-sender]]
             [chromex.ext.tabs :as tabs]
             [chromex.ext.runtime :as runtime]
+            [bing-webmaster-bulk-url-removal.content-script.common :as common]
             [bing-webmaster-bulk-url-removal.background.storage :refer [test-storage!]]))
 
 (def clients (atom []))

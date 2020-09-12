@@ -8,6 +8,7 @@
             [testdouble.cljs.csv :as csv]
             [domina :refer [single-node nodes]]
             [domina.xpath :refer [xpath]]
+            [bing-webmaster-bulk-url-removal.content-script.common :as common]
             [chromex.ext.runtime :as runtime :refer-macros [connect]]))
 
 (def upload-chan (chan 1 (map (fn [e]
@@ -34,9 +35,7 @@
 
 
 (defn connect-to-background-page! [background-port]
-  (post-message! background-port "hello from POPUP!")
   (run-message-loop! background-port))
-
 
 (defn current-page []
   (let []
@@ -81,6 +80,8 @@
 (defn init! []
   (let [_ (log "POPUP: init")
         background-port (runtime/connect)]
+    (connect-to-background-page! background-port)
+
     ;; handle onload
     (go-loop []
       (let [reader (js/FileReader.)
@@ -101,11 +102,10 @@
                                        (when url-type (clojure.string/trim url-type))]
                                       (filter (complement nil?))
                                       ))))]
-        (log "about to call :init-victims")
-        ;; (post-message! background-port (common/marshall {:type :init-victims
-        ;;                                                  :data csv-data
-        ;;                                                  }))
+        (post-message! background-port (common/marshall {:type :init-victims
+                                                         :data csv-data
+                                                         }))
+
         (recur)))
 
-    (connect-to-background-page! background-port)
     (mount-root)))

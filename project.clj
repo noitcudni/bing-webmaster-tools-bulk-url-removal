@@ -4,6 +4,8 @@
                  [org.clojure/core.async "0.4.500"]
                  [binaryage/chromex "0.8.6"]
                  [binaryage/devtools "0.9.10"]
+                 [com.cognitect/transit-cljs "0.8.256"]
+                 [com.cemerick/url "0.1.1"]
                  [prismatic/dommy "1.1.0"]
                  [testdouble/clojurescript.csv "0.4.5"]
                  [domina "1.0.3"]
