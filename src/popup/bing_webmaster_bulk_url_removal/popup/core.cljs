@@ -37,7 +37,7 @@
 (defn connect-to-background-page! [background-port]
   (run-message-loop! background-port))
 
-(defn current-page []
+(defn current-page [background-port]
   (let []
     [recom/v-box
      :width "380px"
@@ -64,7 +64,10 @@
                              :style {:width "200px"
                                      :background-color "#007bff"
                                      :color "white"}
-                             :on-click (fn [e] (-> "//input[@id='bulkCsvFileInput']" xpath single-node .click))
+                             :on-click (fn [_]
+                                         (post-message! background-port (common/marshall {:type :open-file-finder}))
+                                         ;; (-> "//input[@id='bulkCsvFileInput']" xpath single-node .click)
+                                         )
 
                              ]
                             ;; TODO: do we need clear cache and view cache?
@@ -72,8 +75,8 @@
                  ]]
      ]))
 
-(defn mount-root []
-  (reagent/render [current-page] (.getElementById js/document "app")))
+(defn mount-root [background-port]
+  (reagent/render [current-page background-port] (.getElementById js/document "app")))
 
 
 ; -- main entry point -------------------------------------------------------------------------------------------------------
@@ -108,4 +111,4 @@
 
         (recur)))
 
-    (mount-root)))
+    (mount-root background-port)))

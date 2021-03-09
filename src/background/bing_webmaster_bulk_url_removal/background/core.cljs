@@ -19,6 +19,18 @@
   (log "BACKGROUND: client connected" (get-sender client))
   (swap! clients conj client))
 
+(defn popup-predicate [client]
+  (re-find #"popup.html" (-> client
+                             get-sender
+                             js->clj
+                             (get "url"))))
+
+(defn get-content-client []
+  (->> @clients
+       (filter (complement popup-predicate))
+       first ;;this should only be one popup
+       ))
+
 (defn remove-client! [client]
   (log "BACKGROUND: client disconnected" (get-sender client))
   (let [remove-item (fn [coll item] (remove #(identical? item %) coll))]
@@ -30,7 +42,14 @@
   (log "BACKGROUND: starting event loop for client:" (get-sender client))
   (go-loop []
     (when-some [message (<! client)]
-      (log "BACKGROUND: got client message:" message "from" (get-sender client))
+      (let [{:keys [type] :as whole-edn} (common/unmarshall message)
+            _ (prn "whole-edn: " whole-edn) ;;xxx
+            ]
+        (cond (= type :open-file-finder) (if-let [client (get-content-client)]
+                                           (post-message! client (common/marshall {:type :open-file-finder}))
+                                           (js/alert "Make sure you are on Google Search Console's Removals page.\n If you already are, please refresh the page and try again."))
+
+              ))
       (recur))
     (log "BACKGROUND: leaving event loop for client:" (get-sender client))
     (remove-client! client)))
@@ -39,7 +58,6 @@
 
 (defn handle-client-connection! [client]
   (add-client! client)
-  (post-message! client "hello from BACKGROUND PAGE!")
   (run-client-message-loop! client))
 
 (defn tell-clients-about-new-tab! []
