@@ -10,7 +10,7 @@
             [chromex.ext.runtime :as runtime]
             [chromex.ext.browser-action :refer-macros [set-badge-text set-badge-background-color]]
             [bing-webmaster-bulk-url-removal.content-script.common :as common]
-            [bing-webmaster-bulk-url-removal.background.storage :refer [clear-victims! store-victims!]]))
+            [bing-webmaster-bulk-url-removal.background.storage :refer [next-victim clear-victims! store-victims! *DONE-FLAG*]]))
 
 (def clients (atom []))
 
@@ -38,6 +38,23 @@
     (swap! clients remove-item client)))
 
 ; -- client event loop ------------------------------------------------------------------------------------------------------
+(defn fetch-next-victim [client]
+  (go
+    (let [[victim-url victim-entry] (<! (next-victim))
+          _ (prn "BACKGROUND: victim-url: " victim-url)
+          _ (prn "BACKGROUND: victim-entry: " victim-entry)]
+      (cond (and (= victim-url "poison-pill") (= (get victim-entry "removal-method") *DONE-FLAG*))
+            (do (prn "DONE!!!")
+                (js/alert "DONE with bulk url removals!"))
+
+            (and victim-url victim-entry)
+            (post-message! client
+                           (common/marshall {:type :remove-url
+                                             :victim victim-url
+                                             :removal-method (get victim-entry "removal-method")
+                                             :url-type (get victim-entry "url-type")
+                                             })))
+      )))
 
 (defn run-client-message-loop! [client]
   (log "BACKGROUND: starting event loop for client:" (get-sender client))
@@ -57,7 +74,7 @@
                                        (<! (store-victims! whole-edn))
                                        (post-message! (get-content-client) (common/marshall {:type :done-init-victims}))
                                        )
-              (= type :next-victim) (prn ">> next-victim")
+              (= type :next-victim) (<! (fetch-next-victim client))
               ))
       (recur))
     (log "BACKGROUND: leaving event loop for client:" (get-sender client))

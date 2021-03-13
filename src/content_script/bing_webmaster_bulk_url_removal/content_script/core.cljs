@@ -26,6 +26,8 @@
   (let [{:keys [type] :as whole-msg} (common/unmarshall message)]
     (cond (= type :open-file-finder) (.click (-> "//input[@id='bulkCsvFileInput']" xpath single-node))
           (= type :done-init-victims) (post-message! chan (common/marshall {:type :next-victim}))
+          (= type :remove-url) (do (prn "handling :remove-url")
+                                   )
           )
     ))
 

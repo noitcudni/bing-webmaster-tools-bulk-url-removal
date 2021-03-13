@@ -1,6 +1,6 @@
 (ns bing-webmaster-bulk-url-removal.background.storage
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require [cljs.core.async :refer [<! chan]]
+  (:require [cljs.core.async :refer [<! >! chan close!]]
             [cljs-time.core :as t]
             [cljs-time.coerce :as tc]
             [chromex.logging :refer-macros [log info warn error group group-end]]
@@ -42,6 +42,80 @@
            (recur more (inc idx)))
          )))
     ))
+
+(defn update-storage [url & args]
+  {:pre [(even? (count args))]}
+  (let [kv-pairs (partition 2 args)
+        local-storage (storage/get-local)
+        ch (chan)]
+    (go
+      (let [[[items] error] (<! (storage-area/get local-storage url))]
+        (if error
+          (error (str "fetching " url ":") error)
+          (let [entry (->> (js->clj items) vals first)
+                r {url (->> kv-pairs
+                            (reduce (fn [accum [k v]]
+                                      (assoc accum k v))
+                                    entry))
+                   }]
+            (storage-area/set local-storage (clj->js r))
+            (>! ch r)
+            ))))
+    ch))
+
+(defn current-removal-attempt
+  "NOTE: There should only be one item that's undergoing removal.
+  Return nil if not found.
+  Return URL if found.
+  "
+  []
+  (let [local-storage (storage/get-local)]
+    (go
+      (let [[[items] error] (<! (storage-area/get local-storage))]
+        (->> items
+             js->clj
+             (remove (fn [[k v]] (= k "license")))
+             (filter (fn [[k v]]
+                       (= "removing" (get v "status"))))
+             first)
+        ))
+    ))
+
+(defn fresh-new-victim []
+  (let [local-storage (storage/get-local)
+        ch (chan)]
+    (go
+      (let [[[items] error] (<! (storage-area/get local-storage))
+            [victim-url victim-entry] (->> (or items '())
+                                           js->clj
+                                           (remove (fn [[k v]] (= k "license")))
+                                           (filter (fn [[k v]]
+                                                     (let [status (get v "status")]
+                                                       (= "pending" status))))
+                                           (sort-by (fn [[_ v]] (get v "idx")))
+                                           first)
+            _ (when-not (nil? victim-entry) (<! (update-storage victim-url "status" "removing")))
+            victim (<! (current-removal-attempt))]
+        (if (nil? victim)
+          (close! ch)
+          (>! ch victim))
+        ))
+    ch))
+
+(defn next-victim []
+  (let [;;local-storage (storage/get-local)
+        ch (chan)]
+    (go
+      (let [victim (<! (current-removal-attempt))
+            victim (if (empty? victim)
+                     (<! (fresh-new-victim))
+                     victim)
+            ]
+        (if (nil? victim)
+          (close! ch)
+          (>! ch victim))
+        ))
+    ch))
 
 (defn store-license [{:keys [email key] :as license}]
   (let [local-storage (storage/get-local)]
