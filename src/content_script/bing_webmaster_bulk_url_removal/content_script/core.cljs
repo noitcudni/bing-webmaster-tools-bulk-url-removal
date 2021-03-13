@@ -23,9 +23,10 @@
 ; -- a message loop ---------------------------------------------------------------------------------------------------------
 
 (defn process-message! [chan message]
-  (let [_ (prn ">> message: " message)
-        {:keys [type] :as whole-msg} (common/unmarshall message)]
-    (cond (= type :open-file-finder) (.click (-> "//input[@id='bulkCsvFileInput']" xpath single-node)))
+  (let [{:keys [type] :as whole-msg} (common/unmarshall message)]
+    (cond (= type :open-file-finder) (.click (-> "//input[@id='bulkCsvFileInput']" xpath single-node))
+          (= type :done-init-victims) (post-message! chan (common/marshall {:type :next-victim}))
+          )
     ))
 
 
@@ -67,7 +68,6 @@
                                        (when url-type (clojure.string/trim url-type))]
                                       (filter (complement nil?))
                                       ))))]
-        (log "about to call :init-victims")
         (post-message! background-port (common/marshall {:type :init-victims
                                                          :data csv-data
                                                          }))

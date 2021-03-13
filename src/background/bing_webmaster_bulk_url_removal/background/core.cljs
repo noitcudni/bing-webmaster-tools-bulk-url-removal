@@ -8,8 +8,9 @@
             [chromex.protocols.chrome-port :refer [on-disconnect! post-message! get-sender]]
             [chromex.ext.tabs :as tabs]
             [chromex.ext.runtime :as runtime]
+            [chromex.ext.browser-action :refer-macros [set-badge-text set-badge-background-color]]
             [bing-webmaster-bulk-url-removal.content-script.common :as common]
-            [bing-webmaster-bulk-url-removal.background.storage :refer [test-storage!]]))
+            [bing-webmaster-bulk-url-removal.background.storage :refer [clear-victims! store-victims!]]))
 
 (def clients (atom []))
 
@@ -49,6 +50,14 @@
                                            (post-message! client (common/marshall {:type :open-file-finder}))
                                            (js/alert "Make sure you are on Google Search Console's Removals page.\n If you already are, please refresh the page and try again."))
 
+              (= type :init-victims) (do
+                                       (prn whole-edn)
+                                       (<! (clear-victims!))
+                                       (set-badge-text #js{"text" ""})
+                                       (<! (store-victims! whole-edn))
+                                       (post-message! (get-content-client) (common/marshall {:type :done-init-victims}))
+                                       )
+              (= type :next-victim) (prn ">> next-victim")
               ))
       (recur))
     (log "BACKGROUND: leaving event loop for client:" (get-sender client))
@@ -92,5 +101,4 @@
 
 (defn init! []
   (log "BACKGROUND: init")
-  (test-storage!)
   (boot-chrome-event-loop!))
