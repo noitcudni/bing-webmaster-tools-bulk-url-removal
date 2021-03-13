@@ -20,12 +20,65 @@
 
 (def read-chan (chan 1 (map #(-> % .-target .-result js->clj))))
 
+(defn sync-node-helper
+  "This is unfortunate. alts! doens't close other channels"
+  [dom-fn & xpath-strs]
+  (go-loop []
+    (let [n (->> xpath-strs
+                 (map (fn [xpath-str]
+                        (dom-fn (xpath xpath-str))
+                        ))
+                 (filter #(some? %))
+                 first)]
+      (if (nil? n)
+        (do (<! (async/timeout 300))
+            (recur))
+        n)
+      )))
+
+(def sync-single-node (partial sync-node-helper single-node))
+(def sync-nodes (partial sync-node-helper nodes))
+
 ; -- a message loop ---------------------------------------------------------------------------------------------------------
+(defn enforce-language []
+  ;; gear button
+  ;; "//i[@data-icon-name='Settings']")
+
+  ;; accordion
+  ;; $x("//div[@class='accordionItemHeaderContent']//div[contains(text(), 'Display language')]")
+
+  ;; the container that contains the language drop down
+  ;; "//div[@class='accordionItemHeaderContent']/div[contains(text(), 'Display language')]/../../../../"
+  ;; "//div[@class='contentInfo']/div"
+  (go
+    ;; click on the gear button
+    (.click (<! (sync-single-node  "//i[@data-icon-name='Settings']")))
+    ;; click on the accordion
+    (.click (<! (sync-single-node "//div[@class='accordionItemHeaderContent']//div[contains(text(), 'Display language')]")))
+    ;; click on the dropdown
+    (<! (async/timeout 1300))
+    ;; (let [a (<! (sync-single-node "//div[@class='accordionItemHeaderContent']/div[contains(text(), 'Display language')]/../../../.."))]
+    ;;   (prn a))
+    (.click (<! (sync-single-node "//div[@class='contentInfo']/div/*[1]")))
+
+    ;; TODO select english
+    )
+  )
+
+(defn exec-new-removal-request
+  [url url-type block-type]
+  ;; Add button
+  ;; "//div[@class='floatRight']//button//span[contains(text(), 'Add URL to block')]"
+  )
+
 
 (defn process-message! [chan message]
   (let [{:keys [type] :as whole-msg} (common/unmarshall message)]
     (cond (= type :open-file-finder) (.click (-> "//input[@id='bulkCsvFileInput']" xpath single-node))
-          (= type :done-init-victims) (post-message! chan (common/marshall {:type :next-victim}))
+          (= type :done-init-victims) (go
+                                        (prn "done-init-victim")
+                                        (<! (enforce-language))
+                                        (post-message! chan (common/marshall {:type :next-victim})))
           (= type :remove-url) (do (prn "handling :remove-url")
                                    )
           )
