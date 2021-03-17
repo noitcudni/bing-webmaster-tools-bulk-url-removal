@@ -32,6 +32,7 @@
                  first)]
       (if (nil? n)
         (do (<! (async/timeout 300))
+            (prn "recurring.. for " xpath-strs);;xxx
             (recur))
         n)
       )))
@@ -55,15 +56,13 @@
     (.click (<! (sync-single-node  "//i[@data-icon-name='Settings']")))
     ;; click on the accordion
     (.click (<! (sync-single-node "//div[@class='accordionItemHeaderContent']//div[contains(text(), 'Display language')]")))
-    ;; click on the dropdown
+    ;; TODO: can we get rid of this timeout?
     (<! (async/timeout 1300))
-    ;; (let [a (<! (sync-single-node "//div[@class='accordionItemHeaderContent']/div[contains(text(), 'Display language')]/../../../.."))]
-    ;;   (prn a))
+    ;; click on the dropdown
     (.click (<! (sync-single-node "//div[@class='contentInfo']/div/*[1]")))
-
-    ;; TODO select english
-    )
-  )
+    ;; select english
+    (.click (<! (sync-single-node "//div[text()='English (United States)'][1]")))
+    ))
 
 (defn exec-new-removal-request
   [url url-type block-type]
@@ -79,7 +78,7 @@
                                         (prn "done-init-victim")
                                         (<! (enforce-language))
                                         (post-message! chan (common/marshall {:type :next-victim})))
-          (= type :remove-url) (do (prn "handling :remove-url")
+          (= type :remove-url) (do (prn ">> handling :remove-url")
                                    )
           )
     ))
