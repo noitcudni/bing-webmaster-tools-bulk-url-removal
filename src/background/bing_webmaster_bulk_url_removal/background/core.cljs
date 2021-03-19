@@ -43,7 +43,7 @@
     (let [[victim-url victim-entry] (<! (next-victim))
           _ (prn "BACKGROUND: victim-url: " victim-url)
           _ (prn "BACKGROUND: victim-entry: " victim-entry)]
-      (cond (and (= victim-url "poison-pill") (= (get victim-entry "removal-method") *DONE-FLAG*))
+      (cond (and (= victim-url "poison-pill") (= (get victim-entry "block-type") *DONE-FLAG*))
             (do (prn "DONE!!!")
                 (js/alert "DONE with bulk url removals!"))
 
@@ -51,7 +51,7 @@
             (post-message! client
                            (common/marshall {:type :remove-url
                                              :victim victim-url
-                                             :removal-method (get victim-entry "removal-method")
+                                             :block-type (get victim-entry "block-type")
                                              :url-type (get victim-entry "url-type")
                                              })))
       )))

@@ -104,8 +104,8 @@
           (= type :remove-url) (do (prn ">> handling :remove-url")
                                    (go
                                      (let [{:keys [victim block-type url-type]} whole-msg
-                                           request-status (<! (exec-new-removal-request victim
-                                                                                        block-type url-type))
+                                           _ (prn "whole-msg: " whole-msg)
+                                           request-status (<! (exec-new-removal-request victim url-type block-type))
                                            ]
 
                                        ))

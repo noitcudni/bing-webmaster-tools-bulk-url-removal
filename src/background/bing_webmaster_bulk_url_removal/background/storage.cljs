@@ -12,18 +12,18 @@
 
 (defn store-victims!
   "status: pending, removed, removing, error
-  CSV format : url, block-method, url-type
+  CSV format : url, block-type, url-type
 
-  block-method: 'url-and-cache' vs 'cache-only'
+  block-type: 'url-and-cache' vs 'cache-only'
   url-type: 'page' va 'directory'
   "
   [{:keys [data]}]
   (let [local-storage (storage/get-local)
         data (concat data [["poison-pill" *DONE-FLAG*]])]
-    (go-loop [[[url optional-block-method optional-url-type :as curr] & more] data
+    (go-loop [[[url optional-block-type optional-url-type :as curr] & more] data
               idx 0]
       (let [;; block-type url-and-cache | cache-only
-            optional-block-method (or (if (empty? optional-block-method) nil optional-block-method) "url-and-cache")
+            optional-block-type (or (if (empty? optional-block-type) nil optional-block-type) "url-and-cache")
             ;; url-type: page | directory
             optional-url-type (or (if (empty? optional-url-type) nil optional-url-type) "page")]
        (if (nil? curr)
@@ -31,12 +31,12 @@
          (let [[[items] error] (<! (storage-area/get local-storage url))]
            (if error
              (error (str "fetching " url ":") error)
-             (do (log "setting url: " url " | method: " optional-block-method)
+             (do (log "setting url: " url " | method: " optional-block-type)
                  (log "setting url: " url " | url-type " optional-url-type)
                  (storage-area/set local-storage (clj->js {url {"submit-ts" (tc/to-long (t/now))
 
                                                                 "remove-ts" nil
-                                                                "block-method" optional-block-method
+                                                                "block-type" optional-block-type
                                                                 "url-type" optional-url-type
                                                                 "status" "pending"
                                                                 "idx" idx}
@@ -140,3 +140,26 @@
         (<! (store-license curr-license))
         )
       )))
+
+(defn print-victims []
+  (let [local-storage (storage/get-local)]
+    (go
+      (let [[[items] error] (<! (storage-area/get local-storage))]
+        (prn (->> items js->clj (remove (fn [[k v]] (= k "license")))))
+        ))
+    ))
+
+(defn get-bad-victims []
+  (let [local-storage (storage/get-local)
+        ch (chan)]
+    (go
+      (let [[[items] error] (<! (storage-area/get local-storage))]
+        (>! ch (->> (or items '())
+                    js->clj
+                    (remove (fn [[k v]] (= k "license")))
+                    (filter (fn [[k v]]
+                              (let [status (get v "status")]
+                                (= "error" status))))
+                    (sort-by (fn [[_ v]] (get v "idx")))
+                    ))))
+    ch))

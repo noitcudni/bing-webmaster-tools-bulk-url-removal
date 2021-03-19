@@ -1,14 +1,16 @@
 (ns bing-webmaster-bulk-url-removal.popup.core
-  (:require-macros [cljs.core.async.macros :refer [go-loop]])
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [cljs.core.async :refer [<! >! put! chan] :as async]
             [chromex.logging :refer-macros [log info warn error group group-end]]
             [chromex.protocols.chrome-port :refer [post-message!]]
+            [chromex.ext.browser-action :refer-macros [set-badge-text]]
             [reagent.core :as reagent :refer [atom]]
             [re-com.core :as recom]
             [testdouble.cljs.csv :as csv]
             [domina :refer [single-node nodes]]
             [domina.xpath :refer [xpath]]
             [bing-webmaster-bulk-url-removal.content-script.common :as common]
+            [bing-webmaster-bulk-url-removal.background.storage :refer [clear-victims! print-victims get-bad-victims]]
             [chromex.ext.runtime :as runtime :refer-macros [connect]]))
 
 (def upload-chan (chan 1 (map (fn [e]
@@ -67,10 +69,28 @@
                              :on-click (fn [_]
                                          (post-message! background-port (common/marshall {:type :open-file-finder}))
                                          ;; (-> "//input[@id='bulkCsvFileInput']" xpath single-node .click)
-                                         )
-
-                             ]
-                            ;; TODO: do we need clear cache and view cache?
+                                         )]
+                            [recom/button
+                             :label "Clear cache"
+                             :style {:width "200px"}
+                             :on-click (fn [_]
+                                         (clear-victims!)
+                                         (set-badge-text #js{"text" ""})
+                                         ;; (reset! cached-bad-victims-atom nil)
+                                         )]
+                            [recom/button
+                             :label "View cache"
+                             :tooltip [recom/v-box
+                                       :children [[recom/label :label "Go to the chrome developer console"]
+                                                  [recom/label :label "Press me to see debugging information"]
+                                                  ]]
+                             :style {:width "200px"}
+                             :on-click (fn [_]
+                                         (print-victims)
+                                         (go
+                                           (let [bad-victims (<! (get-bad-victims))]
+                                             (prn "bad-victims: "  bad-victims)
+                                             )))]
                             ]
                  ]]
      ]))
