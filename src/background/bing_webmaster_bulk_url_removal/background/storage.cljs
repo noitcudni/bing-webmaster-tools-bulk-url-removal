@@ -12,29 +12,31 @@
 
 (defn store-victims!
   "status: pending, removed, removing, error
-  CSV format : url, removal-method, url-type
+  CSV format : url, block-method, url-type
 
-  removal-method: 'remove-url' vs 'clear-cached'
-  url-type: 'url-only' vs 'prefix'
+  block-method: 'url-and-cache' vs 'cache-only'
+  url-type: 'page' va 'directory'
   "
   [{:keys [data]}]
   (let [local-storage (storage/get-local)
         data (concat data [["poison-pill" *DONE-FLAG*]])]
-    (go-loop [[[url optional-removal-method optional-url-type :as curr] & more] data
+    (go-loop [[[url optional-block-method optional-url-type :as curr] & more] data
               idx 0]
-      (let [optional-removal-method (or (if (empty? optional-removal-method) nil optional-removal-method) "remove-url")
-            optional-url-type (or (if (empty? optional-url-type) nil optional-url-type) "url-only")]
+      (let [;; block-type url-and-cache | cache-only
+            optional-block-method (or (if (empty? optional-block-method) nil optional-block-method) "url-and-cache")
+            ;; url-type: page | directory
+            optional-url-type (or (if (empty? optional-url-type) nil optional-url-type) "page")]
        (if (nil? curr)
          (log "DONE storing victims")
          (let [[[items] error] (<! (storage-area/get local-storage url))]
            (if error
              (error (str "fetching " url ":") error)
-             (do (log "setting url: " url " | method: " optional-removal-method)
+             (do (log "setting url: " url " | method: " optional-block-method)
                  (log "setting url: " url " | url-type " optional-url-type)
                  (storage-area/set local-storage (clj->js {url {"submit-ts" (tc/to-long (t/now))
 
                                                                 "remove-ts" nil
-                                                                "removal-method" optional-removal-method
+                                                                "block-method" optional-block-method
                                                                 "url-type" optional-url-type
                                                                 "status" "pending"
                                                                 "idx" idx}

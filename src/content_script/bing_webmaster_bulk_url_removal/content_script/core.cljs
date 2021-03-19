@@ -67,8 +67,31 @@
 (defn exec-new-removal-request
   [url url-type block-type]
   ;; Add button
-  ;; "//div[@class='floatRight']//button//span[contains(text(), 'Add URL to block')]"
-  )
+  (let [ch (chan)
+        _ (prn ">> url-type: " url-type)
+        _ (prn ">> block-type: " block-type)
+        ]
+   (go
+     (cond (and (not= url-type  "page") (not= url-type "directory"))
+           (>! ch :erroneous-url-type)
+           (and (not= block-type "url-and-cache") (not= block-type "cache-only"))
+           (>! ch :erroneous-block-type)
+           :else
+           (do
+             (.click (<! (sync-single-node "//div[@class='floatRight']//button//span[contains(text(), 'Add URL to block')]")))
+             (let [n (<! (sync-single-node "//input[@aria-label='Enter URL']"))]
+               (domina/set-value! n url))
+
+             #_(if (= url-type "page")
+               (domina/set-value! (xpath "//span[text()='Page']/..//preceding-sibling::input]")
+                                  :checked "checked")
+               (let [n (<! (sync-single-node "//span[text()='Directory']/..//preceding-sibling::input]"))]
+                 (domina/set-attr! n :checked "checked")))
+
+
+             (>! ch :success)
+             )))
+   ch))
 
 
 (defn process-message! [chan message]
@@ -76,9 +99,16 @@
     (cond (= type :open-file-finder) (.click (-> "//input[@id='bulkCsvFileInput']" xpath single-node))
           (= type :done-init-victims) (go
                                         (prn "done-init-victim")
-                                        (<! (enforce-language))
+                                        ;; (<! (enforce-language))
                                         (post-message! chan (common/marshall {:type :next-victim})))
           (= type :remove-url) (do (prn ">> handling :remove-url")
+                                   (go
+                                     (let [{:keys [victim block-type url-type]} whole-msg
+                                           request-status (<! (exec-new-removal-request victim
+                                                                                        block-type url-type))
+                                           ]
+
+                                       ))
                                    )
           )
     ))
