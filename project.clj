@@ -8,6 +8,7 @@
                  [com.cemerick/url "0.1.1"]
                  [prismatic/dommy "1.1.0"]
                  [testdouble/clojurescript.csv "0.4.5"]
+                 [cljs-http "0.1.46"]
                  [domina "1.0.3"]
                  [reagent "0.8.1"]
                  [re-com "2.6.0"]

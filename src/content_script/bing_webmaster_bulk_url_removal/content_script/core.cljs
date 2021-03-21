@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [cljs.core.async :refer [<! >! chan put!] :as async]
             [cognitect.transit :as t]
+            [cljs-http.client :as http]
             [clojure.string]
             [testdouble.cljs.csv :as csv]
             [domina.xpath :refer [xpath]]
@@ -64,6 +65,7 @@
     (.click (<! (sync-single-node "//div[text()='English (United States)'][1]")))
     ))
 
+
 (defn exec-new-removal-request
   [url url-type block-type]
   ;; Add button
@@ -77,20 +79,58 @@
            (and (not= block-type "url-and-cache") (not= block-type "cache-only"))
            (>! ch :erroneous-block-type)
            :else
+           ;; NOTE: try hitting the ajax directly
+           ;; https://www.bing.com/webmasters/api/configure/blockurl/add
+           ;; {"siteUrl":"siteUrl","url":{"Value":"url-goes-here"},"urlType":"Page","blockType":"CacheOnly"}
            (do
-             (.click (<! (sync-single-node "//div[@class='floatRight']//button//span[contains(text(), 'Add URL to block')]")))
-             (let [n (<! (sync-single-node "//input[@aria-label='Enter URL']"))]
-               (domina/set-value! n url))
+             (let [site-name-dom (<! (sync-single-node "//div[@class='userSiteName']"))
+                  site-name  (.-textContent site-name-dom)
+                  url-type-param (if (= url-type "page") "Page" "Directory")
+                  block-type-param (if (= block-type "url-and-cache") "FullRemoval" "CacheOnly")
+                  {success? :success
+                   {body-status :Status} :body} (<! (http/post "https://www.bing.com/webmasters/api/configure/blockurl/add"
+                                                               {:json-params
+                                                                {
+                                                                 :siteUrl (str "https://" site-name)
+                                                                 :urlType url-type-param
+                                                                 :blockType block-type-param
+                                                                 :url {:Value url}}
+                                                                }))
+                  ]
 
-             #_(if (= url-type "page")
-               (domina/set-value! (xpath "//span[text()='Page']/..//preceding-sibling::input]")
-                                  :checked "checked")
-               (let [n (<! (sync-single-node "//span[text()='Directory']/..//preceding-sibling::input]"))]
-                 (domina/set-attr! n :checked "checked")))
+              (if (and (= body-status "SUCCESSFUL") success?)
+                (>! ch :success)
+                (>! ch :failed)
+                ))
+
+             ;; (.click (<! (sync-single-node "//div[@class='floatRight']//button//span[contains(text(), 'Add URL to block')]")))
+             ;; ;; enter the url
+             ;; (let [n (<! (sync-single-node "//input[@aria-label='Enter URL']"))]
+             ;;   (domina/set-value! n url)
+             ;;   (let [evt (.createEvent js/document "HTMLEvents")
+             ;;         _ (.initEvent evt "change" false true)]
+             ;;     (.dispatchEvent n evt)
+             ;;     ))
+             )
+
+           ;; (.click (<! (sync-single-node "//div[@class='floatRight']//button//span[contains(text(), 'Add URL to block')]")))
+           ;; ;; enter the url
+           ;; (let [n (<! (sync-single-node "//input[@aria-label='Enter URL']"))]
+           ;;   (set! (.-value n) url)
+           ;;   #_(domina/set-value! n url))
+
+           ;; ;; check on the right url-type radio
+           ;; (let [page-radio (<! (sync-single-node "//span[text()='Page']/../../input"))
+           ;;       directory-radio (<! (sync-single-node "//span[text()='Directory']/../../input"))]
+           ;;  (if (= url-type "page")
+           ;;    (do (set! (.-checked page-radio) true)
+           ;;        (set! (.-checked page-radio) false))
+           ;;    (do (set! (.-checked directory-radio) true)
+           ;;        (set! (.-checked directory-radio) false))
+           ;;    ))
 
 
-             (>! ch :success)
-             )))
+           ))
    ch))
 
 
@@ -107,6 +147,14 @@
                                            _ (prn "whole-msg: " whole-msg)
                                            request-status (<! (exec-new-removal-request victim url-type block-type))
                                            ]
+                                       (if (= :success request-status)
+                                         (post-message! chan (common/marshall {:type :success
+                                                                               :url victim}))
+                                         (post-message! chan (common/marshall {:type :skip-error
+                                                                               :reason request-status
+                                                                               :url victim
+                                                                               }))
+                                         )
 
                                        ))
                                    )

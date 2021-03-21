@@ -8,9 +8,11 @@
             [chromex.protocols.chrome-port :refer [on-disconnect! post-message! get-sender]]
             [chromex.ext.tabs :as tabs]
             [chromex.ext.runtime :as runtime]
+            [cljs-time.core :as tt]
+            [cljs-time.coerce :as tc]
             [chromex.ext.browser-action :refer-macros [set-badge-text set-badge-background-color]]
             [bing-webmaster-bulk-url-removal.content-script.common :as common]
-            [bing-webmaster-bulk-url-removal.background.storage :refer [next-victim clear-victims! store-victims! *DONE-FLAG*]]))
+            [bing-webmaster-bulk-url-removal.background.storage :refer [get-bad-victims update-storage next-victim clear-victims! store-victims! *DONE-FLAG*]]))
 
 (def clients (atom []))
 
@@ -19,6 +21,12 @@
 (defn add-client! [client]
   (log "BACKGROUND: client connected" (get-sender client))
   (swap! clients conj client))
+
+(defn get-popup-client []
+  (->> @clients
+       (filter popup-predicate)
+       first ;;this should only be one popup
+       ))
 
 (defn popup-predicate [client]
   (re-find #"popup.html" (-> client
@@ -75,6 +83,45 @@
                                        (post-message! (get-content-client) (common/marshall {:type :done-init-victims}))
                                        )
               (= type :next-victim) (<! (fetch-next-victim client))
+              (= type :success) (go
+                                  (prn "handle success!!! : " whole-edn) ;;xxx
+                                  (let [{:keys [url]} whole-edn]
+                                    (<! (update-storage url
+                                                        "status" "removed"
+                                                        "remove-ts" (tc/to-long (tt/now))
+                                                        ))
+                                    (<! (fetch-next-victim client))
+                                    ))
+
+              (= type :skip-error) (do
+                                     (prn "inside :skip-error:" whole-edn)
+                                     ;; NOTE: Does someone else need to fire off a next victim event?
+                                     ;; No, in removals.cljs, after firing off :skip-error message,
+                                     ;; it clicks on cancel right away. This brings the page back to the
+                                     ;; main page, which triggers another :next-victim event.
+
+                                     ;; NOTE: ^^ That's not the case any longer in the new version. There's no page refresh
+                                     (go
+                                       (let [{:keys [url reason]} whole-edn
+                                             popup-client (get-popup-client)
+                                             updated-error-entry (<! (update-storage url
+                                                                                     "status" "error"
+                                                                                     "error-reason" reason))
+                                             error-cnt (->> (<! (get-bad-victims))
+                                                            count
+                                                            str)
+                                             _ (prn "updated-error-entry: " updated-error-entry) ;;xxx
+                                             _ (prn "error-cnt: " error-cnt) ;;xxx
+                                             ]
+                                         (set-badge-text (clj->js {"text" error-cnt}))
+                                         (set-badge-background-color #js{"color" "#F00"})
+                                         (when popup-client
+                                           (prn "sending popup-client " (common/marshall
+                                                                         {:type :new-error :error updated-error-entry}))
+                                           (post-message! popup-client (common/marshall
+                                                                        {:type :new-error :error updated-error-entry})))
+                                         (<! (fetch-next-victim client))
+                                         )))
               ))
       (recur))
     (log "BACKGROUND: leaving event loop for client:" (get-sender client))
