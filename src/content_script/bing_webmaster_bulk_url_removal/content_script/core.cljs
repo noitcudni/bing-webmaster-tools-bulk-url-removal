@@ -6,7 +6,7 @@
             [clojure.string]
             [testdouble.cljs.csv :as csv]
             [domina.xpath :refer [xpath]]
-            [domina :refer [single-node nodes append!]]
+            [domina :refer [single-node nodes append! prepend!]]
             [chromex.logging :refer-macros [log info warn error group group-end]]
             [chromex.protocols.chrome-port :refer [post-message!]]
             [bing-webmaster-bulk-url-removal.content-script.common :as common]
@@ -66,6 +66,42 @@
     ))
 
 
+(defn mount-root []
+  (append! (xpath "//div[@id='root']") (str "<div style='z-index:100;"
+                                            "position:absolute;"
+                                            "top: 80px;"
+                                            "right: 600px;"
+                                            "max-width: 600px"
+                                            "max-height:200px;"
+                                            "background-color:red;"
+                                            "overflow: scroll;'"
+                                            ">"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+                                            "<div>url goes here</div>"
+
+                                            "</div>"))
+  )
+
 (defn exec-new-removal-request
   [url url-type block-type]
   ;; Add button
@@ -82,6 +118,7 @@
            ;; NOTE: try hitting the ajax directly
            ;; https://www.bing.com/webmasters/api/configure/blockurl/add
            ;; {"siteUrl":"siteUrl","url":{"Value":"url-goes-here"},"urlType":"Page","blockType":"CacheOnly"}
+           ;; TODO: implement some type of feedback mechanism
            (do
              (let [site-name-dom (<! (sync-single-node "//div[@class='userSiteName']"))
                   site-name  (.-textContent site-name-dom)
@@ -148,8 +185,10 @@
                                            request-status (<! (exec-new-removal-request victim url-type block-type))
                                            ]
                                        (if (= :success request-status)
-                                         (post-message! chan (common/marshall {:type :success
-                                                                               :url victim}))
+                                         (do
+                                           (mount-root)
+                                           (post-message! chan (common/marshall {:type :success
+                                                                                 :url victim})))
                                          (post-message! chan (common/marshall {:type :skip-error
                                                                                :reason request-status
                                                                                :url victim
@@ -162,13 +201,14 @@
     ))
 
 
-; -- a simple page analysis  ------------------------------------------------------------------------------------------------
+
 
 
 ; -- main entry point -------------------------------------------------------------------------------------------------------
 
 (defn init! []
   (let [background-port (runtime/connect)]
+
     (go
       (common/connect-to-background-page! background-port process-message!))
 
