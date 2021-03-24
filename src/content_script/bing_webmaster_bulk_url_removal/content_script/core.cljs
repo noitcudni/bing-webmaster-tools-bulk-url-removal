@@ -67,15 +67,12 @@
 
 
 (defn mount-root []
-  (append! (xpath "//div[@id='root']") (str "<div style='z-index:100;"
-                                            "position:absolute;"
-                                            "top: 80px;"
-                                            "right: 600px;"
-                                            "max-width: 600px"
-                                            "max-height:200px;"
-                                            "background-color:red;"
-                                            "overflow: scroll;'"
-                                            ">"
+  (append! (xpath "//div[@id='root']") (str "<div style='z-index:100;position:absolute;top: 200px;right: 600px;'>"
+                                            "<div>Don't refresh when the extension is running</div>"
+                                            "<div>More instructions</div>"
+                                            "<div id='status-display' style='max-width: 100px;max-height: 200px;background-color:red;overflow-x: scroll;overflow-y: scroll;'>"
+                                            "<div>Success : url goes here here here here here here</div>"
+                                            "<div>Failed  : url goes here</div>"
                                             "<div>url goes here</div>"
                                             "<div>url goes here</div>"
                                             "<div>url goes here</div>"
@@ -96,10 +93,9 @@
                                             "<div>url goes here</div>"
                                             "<div>url goes here</div>"
                                             "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-
-                                            "</div>"))
+                                            "</div>"
+                                            "</div>"
+                                            ))
   )
 
 (defn exec-new-removal-request
@@ -186,6 +182,7 @@
                                            ]
                                        (if (= :success request-status)
                                          (do
+                                           ;; TODO update ui
                                            (mount-root)
                                            (post-message! chan (common/marshall {:type :success
                                                                                  :url victim})))
@@ -254,6 +251,8 @@
        (set! (.. (-> "//input[@id='bulkCsvFileInput']" xpath single-node) -onchange)
              (fn [e]
                (prn ">> got the file")
-               (put! upload-chan e))
-             ))
-     )))
+               (put! upload-chan e)))
+       (mount-root)
+       ))
+
+    ))
