@@ -69,7 +69,8 @@
 (defn mount-root []
   (append! (xpath "//div[@id='root']") (str "<div style='z-index:100;position:absolute;top: 200px;right: 600px;'>"
                                             "<div>Don't refresh when the extension is running</div>"
-                                            "<div>More instructions</div>"
+                                            "<div>An alert will pop up once everything is done.</div>"
+                                            "<div>You may refresh the page after that.</div>"
                                             "<div id='status-display' style='max-width: 500px;max-height: 200px;background-color:red;overflow-x: auto;overflow-y: auto;'>"
                                             "</div>"
                                             "</div>"
