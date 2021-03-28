@@ -70,29 +70,7 @@
   (append! (xpath "//div[@id='root']") (str "<div style='z-index:100;position:absolute;top: 200px;right: 600px;'>"
                                             "<div>Don't refresh when the extension is running</div>"
                                             "<div>More instructions</div>"
-                                            "<div id='status-display' style='max-width: 100px;max-height: 200px;background-color:red;overflow-x: scroll;overflow-y: scroll;'>"
-                                            "<div>Success : url goes here here here here here here</div>"
-                                            "<div>Failed  : url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
-                                            "<div>url goes here</div>"
+                                            "<div id='status-display' style='max-width: 500px;max-height: 200px;background-color:red;overflow-x: auto;overflow-y: auto;'>"
                                             "</div>"
                                             "</div>"
                                             ))
@@ -166,6 +144,9 @@
            ))
    ch))
 
+(defn update-ui
+  [url status]
+  (append! (xpath "//div[@id='status-display']") (str "<div>"  status " : " url "</div>")))
 
 (defn process-message! [chan message]
   (let [{:keys [type] :as whole-msg} (common/unmarshall message)]
@@ -182,16 +163,16 @@
                                            ]
                                        (if (= :success request-status)
                                          (do
-                                           ;; TODO update ui
-                                           (mount-root)
+                                           (update-ui victim "success")
                                            (post-message! chan (common/marshall {:type :success
                                                                                  :url victim})))
-                                         (post-message! chan (common/marshall {:type :skip-error
-                                                                               :reason request-status
-                                                                               :url victim
-                                                                               }))
+                                         (do
+                                           (update-ui victim "error")
+                                           (post-message! chan (common/marshall {:type :skip-error
+                                                                                 :reason request-status
+                                                                                 :url victim
+                                                                                 })))
                                          )
-
                                        ))
                                    )
           )
