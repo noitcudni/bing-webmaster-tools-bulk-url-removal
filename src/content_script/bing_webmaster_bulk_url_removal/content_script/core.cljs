@@ -6,7 +6,7 @@
             [clojure.string]
             [testdouble.cljs.csv :as csv]
             [domina.xpath :refer [xpath]]
-            [domina :refer [single-node nodes append! prepend!]]
+            [domina :refer [single-node nodes append! prepend! set-styles!]]
             [chromex.logging :refer-macros [log info warn error group group-end]]
             [chromex.protocols.chrome-port :refer [post-message!]]
             [bing-webmaster-bulk-url-removal.content-script.common :as common]
@@ -67,11 +67,10 @@
 
 
 (defn mount-root []
-  (append! (xpath "//div[@id='root']") (str "<div style='z-index:100;position:absolute;top: 200px;right: 600px;'>"
-                                            "<div>Don't refresh when the extension is running</div>"
-                                            "<div>An alert will pop up once everything is done.</div>"
-                                            "<div>You may refresh the page after that.</div>"
-                                            "<div id='status-display' style='max-width: 500px;max-height: 200px;background-color:red;overflow-x: auto;overflow-y: auto;'>"
+  (append! (xpath "//div[@id='root']") (str "<div id='status-display-container' style='z-index:100;position:absolute;top: 200px;right: 600px; display:none'>"
+                                            "<div style='background-color:#e2e2e2'>Don't refresh when the extension is running</div>"
+                                            "<div style='background-color:#e2e2e2'>An alert will pop up once everything is done.</div>"
+                                            "<div id='status-display' style='max-width: 500px;max-height: 200px;overflow-x: auto;overflow-y: auto;'>"
                                             "</div>"
                                             "</div>"
                                             ))
@@ -147,7 +146,28 @@
 
 (defn update-ui
   [url status]
-  (append! (xpath "//div[@id='status-display']") (str "<div>"  status " : " url "</div>")))
+  (set-styles! (xpath "//div[@id='status-display-container']")
+               {:z-index 100
+                :position "absolute"
+                :top  "200px"
+                :right "600px"
+                :display "block"})
+
+  (append! (xpath "//div[@id='status-display']")
+           (str "<div style='clear:both'>"
+                (if (= status "success")
+                  "<div style='float: left; background-color: #9ccc9c; padding: 2px; margin: 1px'>"
+                  "<div style='float: left; background-color: #ff8b8e; padding: 2px; margin: 1px'>")
+                status
+                ": </div>"
+
+                "<div style='float: left; background-color: #F5FFFA; padding: 2px; margin: 1px'>"
+                url
+                "</div>"
+
+                "</div>")
+           ;; (str "<div>"  status " : " url "</div>")
+           ))
 
 (defn process-message! [chan message]
   (let [{:keys [type] :as whole-msg} (common/unmarshall message)]
