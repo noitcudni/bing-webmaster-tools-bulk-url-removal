@@ -54,7 +54,21 @@
                  :align :start
                  :style {:padding "10px"}
                  :children [[recom/title :label "Instructions:" :level :level1]
-                            [recom/label :label "- more instructions go here"]]
+                            [recom/label :label "- Go to Bing Webmaster Tools"]
+                            [recom/label :label "- Select the proper domain from the dropdown on the left."]
+                            [recom/label :label "- Select Configuration > Block URLs on the left pane."]
+                            [recom/label :label "- Upload your csv file by clicking on the ''Submit CSV File Button. Check out the example csv below."]
+                            [recom/hyperlink-href
+                             :label "CSV Format Documentation"
+                             :href "https://github.com/noitcudni/bing-webmaster-bulk-url-removal/#csv-format"
+                             :target "_blank"]
+                            [recom/hyperlink-href
+                             :label "example 1"
+                             :href "examples/most-common.csv"]
+                            [recom/hyperlink-href
+                             :label "example 2"
+                             :href "examples/optional-columns.csv"]
+                            ]
                  ]
                 [recom/v-box
                  :gap "10px"
@@ -91,8 +105,9 @@
                                            (let [bad-victims (<! (get-bad-victims))]
                                              (prn "bad-victims: "  bad-victims)
                                              )))]
-                            ]
-                 ]]
+                            ]]
+                [recom/gap :size "30px"]
+                ]
      ]))
 
 (defn mount-root [background-port]
