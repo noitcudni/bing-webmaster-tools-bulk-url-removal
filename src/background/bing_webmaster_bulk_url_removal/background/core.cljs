@@ -53,6 +53,8 @@
           _ (prn "BACKGROUND: victim-entry: " victim-entry)]
       (cond (and (= victim-url "poison-pill") (= (get victim-entry "block-type") *DONE-FLAG*))
             (do (prn "DONE!!!")
+                (post-message! client
+                               (common/marshall {:type :turn-off-spinner}))
                 (js/alert "DONE with bulk url removals!"))
 
             (and victim-url victim-entry)

@@ -70,7 +70,7 @@
   (append! (xpath "//div[@id='root']") (str "<div id='status-display-container' style='z-index:100;position:absolute;top: 150px; left: 250px; display:none'>"
                                             "<div style='background-color:#e2e2e2'>Don't refresh when the extension is running</div>"
                                             "<div style='background-color:#e2e2e2'>An alert will pop up once everything is done.</div>"
-                                            "<div class='spinner-border'></div>"
+                                            "<div id='bulk-removal-spinner' class='spinner-border'></div>"
                                             "<div id='status-display' style='max-width: 800px;max-height: 200px;overflow-x: auto;overflow-y: auto;'></div>"
                                             "</div>"
                                             ))
@@ -163,22 +163,10 @@
             ":&nbsp;</span>"
             url
             "</div>")
-
-
-           #_(str "<div style='clear:both; max-width: 500px;'>"
-                (if (= status "success")
-                  "<div style='float: left; background-color: #9ccc9c; padding: 2px; margin: 1px'>"
-                  "<div style='float: left; background-color: #ff8b8e; padding: 2px; margin: 1px'>")
-                status
-                ": </div>"
-
-                "<div style='float: left; background-color: #F5FFFA; padding: 2px; margin: 1px'>"
-                url
-                "</div>"
-
-                "</div>")
-           ;; (str "<div>"  status " : " url "</div>")
            ))
+
+(defn disable-spinner []
+  (set-styles! (xpath "//div[@id='bulk-removal-spinner']") {:display "none"}))
 
 (defn process-message! [chan message]
   (let [{:keys [type] :as whole-msg} (common/unmarshall message)]
@@ -205,12 +193,12 @@
                                                                                  :url victim
                                                                                  })))
                                          )
-                                       ))
-                                   )
+                                       )))
+          (= type :turn-off-spinner) (do
+                                       (prn "turn off spinner")
+                                       (disable-spinner))
           )
     ))
-
-
 
 
 
