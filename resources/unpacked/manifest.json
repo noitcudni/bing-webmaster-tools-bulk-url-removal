@@ -27,6 +27,9 @@
       "js": [
         "compiled/content-script/main.js"
       ],
+      "css": [
+        "bootstrap.min.css"
+      ],
       "run_at": "document_start"
     }
   ],

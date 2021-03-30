@@ -67,11 +67,11 @@
 
 
 (defn mount-root []
-  (append! (xpath "//div[@id='root']") (str "<div id='status-display-container' style='z-index:100;position:absolute;top: 200px;right: 600px; display:none'>"
+  (append! (xpath "//div[@id='root']") (str "<div id='status-display-container' style='z-index:100;position:absolute;top: 150px; left: 250px; display:none'>"
                                             "<div style='background-color:#e2e2e2'>Don't refresh when the extension is running</div>"
                                             "<div style='background-color:#e2e2e2'>An alert will pop up once everything is done.</div>"
-                                            "<div id='status-display' style='max-width: 500px;max-height: 200px;overflow-x: auto;overflow-y: auto;'>"
-                                            "</div>"
+                                            "<div class='spinner-border'></div>"
+                                            "<div id='status-display' style='max-width: 800px;max-height: 200px;overflow-x: auto;overflow-y: auto;'></div>"
                                             "</div>"
                                             ))
   )
@@ -149,12 +149,23 @@
   (set-styles! (xpath "//div[@id='status-display-container']")
                {:z-index 100
                 :position "absolute"
-                :top  "200px"
-                :right "600px"
+                :top "150px"
+                :left "250px"
                 :display "block"})
 
   (append! (xpath "//div[@id='status-display']")
-           (str "<div style='clear:both'>"
+           (str
+            "<div style='background-color: #F5FFFA; padding: 2px; margin: 1px'>"
+            (if (= status "success")
+              "<span style='float: left; color: #149414;'>"
+              "<span style='float: left; color: #ff0000;'>")
+            status
+            ":&nbsp;</span>"
+            url
+            "</div>")
+
+
+           #_(str "<div style='clear:both; max-width: 500px;'>"
                 (if (= status "success")
                   "<div style='float: left; background-color: #9ccc9c; padding: 2px; margin: 1px'>"
                   "<div style='float: left; background-color: #ff8b8e; padding: 2px; margin: 1px'>")
