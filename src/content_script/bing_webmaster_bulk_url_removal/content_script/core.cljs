@@ -68,7 +68,7 @@
 
 (defn mount-root []
   (append! (xpath "//div[@id='root']") (str "<div id='status-display-container' style='z-index:100;position:absolute;top: 150px; left: 250px; display:none'>"
-                                            "<div style='background-color:#e2e2e2'>Don't refresh when the extension is running</div>"
+                                            "<div style='background-color:#e2e2e2'>Don't refresh the page when the extension is running</div>"
                                             "<div style='background-color:#e2e2e2'>An alert will pop up once everything is done.</div>"
                                             "<div id='bulk-removal-spinner' class='spinner-border'></div>"
                                             "<div id='status-display' style='max-width: 800px;max-height: 200px;overflow-x: auto;overflow-y: auto;'></div>"

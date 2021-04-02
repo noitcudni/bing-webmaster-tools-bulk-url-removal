@@ -1,10 +1,11 @@
 {
-  "name": "chromex-sample",
+  "name": "Bing Webmaster Bulk Url Removal",
   "version": "0.1.0",
   "browser_action": {
     "default_title": "Show the popup",
     "default_popup": "popup.html"
   },
+  "default_locale": "en",
   "icons": {
     "16": "images/bing_trash_can_16.png",
     "32" : "images/bing_trash_can_32.png",
@@ -18,6 +19,9 @@
       ],
       "js": [
         "compiled/content-script.js"
+      ],
+      "css": [
+        "bootstrap.min.css"
       ],
       "run_at": "document_start"
     }
