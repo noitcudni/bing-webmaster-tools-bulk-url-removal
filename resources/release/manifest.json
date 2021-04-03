@@ -31,7 +31,8 @@
     "persistent": false
   },
   "permissions": [
-    "storage"
+    "storage",
+    "https://api.gumroad.com/v2/licenses/verify"
   ],
   "manifest_version": 2
 }
