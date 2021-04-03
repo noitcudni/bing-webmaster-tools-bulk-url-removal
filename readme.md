@@ -1,6 +1,7 @@
 # Bing Webmaster Tools - Bulk Url Removal Chrome Extension
 
 ## Install from Google Webstore
+https://chrome.google.com/webstore/detail/bing-webmaster-tools-bulk/knhcaipgfilkpgkejhmjbgklpalkaahi
 
 ## Installation
 1. Install Java.
